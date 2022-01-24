@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import pl.edu.agh.springjena.api.entity.AdvancedQueryBody;
+import pl.edu.agh.springjena.api.entity.AskQueryBody;
 import pl.edu.agh.springjena.api.entity.WhereExpression;
 import pl.edu.agh.springjena.jena.service.QueryService;
 
@@ -42,5 +43,12 @@ public class WikidataSparqlController {
                 null,
                 null,
                 null);
+    }
+
+    @PostMapping("/wikidata/ask")
+    public boolean askDbpedia(@RequestBody AskQueryBody askQueryBody){
+        return queryService.createAndRunAskQuery(endpointWikidata,
+                askQueryBody.getWhereExpressions(),
+                askQueryBody.getPrefixes());
     }
 }

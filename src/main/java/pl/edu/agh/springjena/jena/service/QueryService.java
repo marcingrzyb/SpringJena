@@ -1,5 +1,6 @@
 package pl.edu.agh.springjena.jena.service;
 
+import org.apache.jena.arq.querybuilder.AskBuilder;
 import org.apache.jena.arq.querybuilder.SelectBuilder;
 import org.apache.jena.query.*;
 import org.apache.jena.sparql.lang.sparql_11.ParseException;
@@ -36,21 +37,38 @@ public class QueryService {
         sparqlQueryCreationService.resolveWhereExpression(randomVariableQueryNameGenerator, selectBuilder, whereExpression);
         sparqlQueryCreationService.resolveFilters(selectBuilder, filters);
         sparqlQueryCreationService.resolveOrderBy(selectBuilder, orderBy);
-        List<Map<String, Object>> returnValue = executeSparqlQuery(sparqlEndpointAddress, selectBuilder.build());
+        List<Map<String, Object>> returnValue = executeSparqlSelectQuery(sparqlEndpointAddress, selectBuilder.build());
         return returnValue;
     }
 
-    private List<Map<String, Object>> executeSparqlQuery(String sparqlEndpointAddress, Query query) {
+    public boolean createAndRunAskQuery(String sparqlEndpointAddress,
+                                        List<WhereExpression> whereExpression,
+                                        List<Prefix> prefixList) {
+        RandomVariableQueryNameGenerator randomVariableQueryNameGenerator = new RandomVariableQueryNameGenerator();
+        AskBuilder askBuilder = new AskBuilder();
+        sparqlQueryCreationService.resolvePrefix(askBuilder, prefixList);
+        sparqlQueryCreationService.resolveWhereAskExpression(randomVariableQueryNameGenerator, askBuilder, whereExpression);
+        return executeSparqlAskQuery(sparqlEndpointAddress, askBuilder.build());
+    }
+
+    private boolean executeSparqlAskQuery(String sparqlEndpointAddress, Query query) {
+        QueryExecution qexec = QueryExecutionFactory.sparqlService(sparqlEndpointAddress, query);
+        boolean askResult = qexec.execAsk();
+        qexec.close();
+        return askResult;
+    }
+
+    private List<Map<String, Object>> executeSparqlSelectQuery(String sparqlEndpointAddress, Query query) {
         QueryExecution qexec = QueryExecutionFactory.sparqlService(sparqlEndpointAddress, query);
         List<Map<String, Object>> resultList = new ArrayList<>();
         try {
             ResultSet results = qexec.execSelect();
             for (; results.hasNext(); ) {
-                Map<String,Object> map = new HashMap<>();
+                Map<String, Object> map = new HashMap<>();
                 results.toString();
                 QuerySolution querySolution = results.nextSolution();
                 List<String> resultVars = results.getResultVars();
-                for (String resultVar : resultVars){
+                for (String resultVar : resultVars) {
                     map.put(resultVar, querySolution.get(resultVar));
                 }
                 resultList.add(map);
@@ -60,4 +78,5 @@ public class QueryService {
         }
         return resultList;
     }
+
 }

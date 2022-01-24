@@ -1,7 +1,10 @@
 package pl.edu.agh.springjena.jena.service;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.arq.querybuilder.AbstractQueryBuilder;
+import org.apache.jena.arq.querybuilder.AskBuilder;
 import org.apache.jena.arq.querybuilder.SelectBuilder;
+import org.apache.jena.arq.querybuilder.WhereBuilder;
 import org.apache.jena.sparql.lang.sparql_11.ParseException;
 import org.springframework.stereotype.Service;
 import pl.edu.agh.springjena.api.entity.Prefix;
@@ -28,22 +31,21 @@ public class SparqlQueryCreationService {
         return selectBuilder;
     }
 
+    public AbstractQueryBuilder resolvePrefix(AbstractQueryBuilder selectBuilder, List<Prefix> prefixList) {
+        if (!isNull(prefixList) && !prefixList.isEmpty()) {
+            for (Prefix prefix : prefixList) {
+                selectBuilder.addPrefix(prefix.getPrefix(), prefix.getUri());
+            }
+        }
+        return selectBuilder;
+    }
+
     public SelectBuilder resolveSelectedValues(SelectBuilder selectBuilder, List<String> selectedValues) {
         if (isNull(selectedValues) || selectedValues.isEmpty()) {
             selectBuilder.addVar("*");
         } else {
             for (String selectedValue : selectedValues) {
                 selectBuilder.addVar(selectedValue);
-            }
-        }
-        return selectBuilder;
-    }
-
-    public SelectBuilder resolvePrefix(SelectBuilder selectBuilder, List<Prefix> prefixList) {
-        if (!isNull(prefixList) && !prefixList.isEmpty()) {
-            for (Prefix prefix : prefixList) {
-                selectBuilder.addPrefix(prefix.getPrefix(), prefix.getUri());
-
             }
         }
         return selectBuilder;
@@ -66,5 +68,19 @@ public class SparqlQueryCreationService {
             }
         }
         return selectBuilder;
+    }
+
+    public AskBuilder resolveWhereAskExpression(RandomVariableQueryNameGenerator randomVariableQueryNameGenerator, AskBuilder askBuilder, List<WhereExpression> whereExpression) {
+        if (!isNull(whereExpression) && !whereExpression.isEmpty()) {
+            for (WhereExpression we : whereExpression) {
+                if (!we.isEmpty()) {
+                    String subject = StringUtils.isBlank(we.getSubject()) ? randomVariableQueryNameGenerator.generateNewVariableQueryName() : we.getSubject();
+                    String predicate = StringUtils.isBlank(we.getPredicate()) ? randomVariableQueryNameGenerator.generateNewVariableQueryName() : we.getPredicate();
+                    String object = StringUtils.isBlank(we.getObject()) ? randomVariableQueryNameGenerator.generateNewVariableQueryName() : we.getObject();
+                    askBuilder.addWhere(subject, predicate, object);
+                }
+            }
+        }
+        return askBuilder;
     }
 }
